@@ -102,8 +102,8 @@ def _interpret_data_for_item_id(itemId, data):
 def _parse_header(headerData):
 	return {
 		'id': headerData[0],
-		'description': _extended_ids[headerData[0]][1],
-		'dataType': _extended_ids[headerData[0]][0],
+		'description': _extended_ids[headerData[0]][1] if headerData[0] in _extended_ids.keys() else "Unknown",
+		'dataType': _extended_ids[headerData[0]][0] if headerData[0] in _extended_ids.keys() else None,
 		'hasData': headerData[1] != 0,
 		'value':  struct.unpack_from("h", headerData[2:])[0],
 		'valueBytes': headerData[2:]
@@ -253,6 +253,6 @@ def parse(filename):
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
-		print "Usage: id666reader.py spcfile.spc"
+		print "Usage: spcid666.py spcfile.spc"
 	else:
 		print parse(sys.argv[1])

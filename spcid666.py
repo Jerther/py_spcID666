@@ -88,7 +88,7 @@ def _read_from_buffer(bfr, size, offset = 0):
 	paddingLength = 0
 	if mod:
 		paddingLength = 4 - mod
-		
+
 	retval = bfr[:size + paddingLength]
 	del bfr[:size + paddingLength]
 	return retval
@@ -159,10 +159,24 @@ def _base_tag_is_binary(f):
 def _parse_base_tag(f):
 	tagIsBinary = _base_tag_is_binary(f)
 	if tagIsBinary:
-		offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 11], [0xA9, 3], [0xAC, 5], [0xB0, 32], [0xD0, 1], [0xD1, 1]]
-	else:
 		offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 4], [0xA9, 3], [0xAC, 4], [0xB1, 32], [0xD1, 1], [0xD2, 1]]
+	else:
+		offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 11], [0xA9, 3], [0xAC, 5], [0xB0, 32], [0xD0, 1], [0xD1, 1]]
 
+	lengthBytes = _read_file(f, offsets[5])
+	fadeoutBytes = _read_file(f, offsets[6])
+	emulatorBytes = _read_file(f, offsets[9])
+	if tagIsBinary:
+		lengthBytes.append(0x00)
+		length = struct.unpack_from("i", lengthBytes)[0]
+		fadeout = struct.unpack_from("i", fadeoutBytes)[0]
+		emulator = str(struct.unpack_from("b", emulatorBytes)[0])
+	else:
+		length = int(_bytes_to_string(lengthBytes))
+		fadeout = int(_bytes_to_string(fadeoutBytes))
+		emulator = _bytes_to_string(emulatorBytes)
+	
+	
 	return _base_tag(
 		isBinary= tagIsBinary,
 		title = _bytes_to_string(_read_file(f, offsets[0])),
@@ -170,11 +184,11 @@ def _parse_base_tag(f):
 		dumper = _bytes_to_string(_read_file(f, offsets[2])),
 		comments = _bytes_to_string(_read_file(f, offsets[3])),
 		date = _bytes_to_string(_read_file(f, offsets[4])),
-		length_before_fadeout = _bytes_to_string(_read_file(f, offsets[5])),
-		fadeout_length = _bytes_to_string(_read_file(f, offsets[6])),
+		length_before_fadeout = length,
+		fadeout_length = fadeout,
 		artist = _bytes_to_string(_read_file(f, offsets[7])),
 		muted_channels = _read_file(f, offsets[8])[0], #always binary
-		emulator = _parse_emulator(_bytes_to_string(_read_file(f, offsets[9])))
+		emulator = _parse_emulator(emulator)
 	)
 
 def _parse_emulator(emulatorString):

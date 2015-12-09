@@ -36,7 +36,6 @@ _xid6_item = collections.namedtuple('XID6_Item', [
 ])
 
 _base_tag = collections.namedtuple('BaseTag', [
-	'isBinary',
 	'title',
 	'game',
 	'dumper',
@@ -95,7 +94,8 @@ def _read_from_buffer(bfr, size, offset = 0):
 
 def _interpret_data_for_item_id(itemId, data):
 	if itemId == 0x12: #ost track
-		return data >> 8, chr(data & 0x00FF)
+		optionalChar = data & 0x00FF
+		return data >> 8, chr(optionalChar) if 0x20 <= optionalChar <= 0x7f else None
 	else:
 		return data
 
@@ -119,7 +119,7 @@ def _bytes_to_string(bts):
 def _get_type(fieldBytes):
 	if all(b == 0 for b in fieldBytes):
 		return None; #empty string or 0
-	elif all((b >= 0x30 or b <= 0x39 or b == '/' or b == 0) for b in fieldBytes):
+	elif all((b >= 0x30 and b <= 0x39 or b == '/' or b == 0) for b in fieldBytes):
 		return 'text'
 	else:
 		return 'binary'
@@ -132,7 +132,6 @@ def _base_tag_is_binary(f):
 
 	channelDisable = _read_file(f, [0xd1, 1])
 	emulator = _read_file(f, [0xd2, 1])
-
 	isBinary = True
 	
 	if songType == None and fadeType == None and dateType == None:	#If no times or date, use default
@@ -158,6 +157,9 @@ def _base_tag_is_binary(f):
 
 def _parse_base_tag(f):
 	tagIsBinary = _base_tag_is_binary(f)
+	if _DEBUG:
+		print "Base tag is binary:", tagIsBinary
+	
 	if tagIsBinary:
 		offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 4], [0xA9, 3], [0xAC, 4], [0xB1, 32], [0xD1, 1], [0xD2, 1]]
 	else:
@@ -178,7 +180,6 @@ def _parse_base_tag(f):
 	
 	
 	return _base_tag(
-		isBinary= tagIsBinary,
 		title = _bytes_to_string(_read_file(f, offsets[0])),
 		game = _bytes_to_string(_read_file(f, offsets[1])),
 		dumper = _bytes_to_string(_read_file(f, offsets[2])),
@@ -229,34 +230,35 @@ def _parse_extended_tag(f):
 			items.append(_xid6_item(header, None, _parse_interpreted_value(header, header['value'])))
 
 	return _extended_tag(
-		title = pop_item_or_default(items, 0x1),
-		game = pop_item_or_default(items, 0x2),
-		artist = pop_item_or_default(items, 0x3),
-		dumper = pop_item_or_default(items, 0x4),
-		date = pop_item_or_default(items, 0x5),
-		emulator = pop_item_or_default(items, 0x6),
-		comments = pop_item_or_default(items, 0x7),
-		official_title = pop_item_or_default(items, 0x10),
-		disc = pop_item_or_default(items, 0x11),
-		track = pop_item_or_default(items, 0x12),
-		publisher = pop_item_or_default(items, 0x13),
-		copyright = pop_item_or_default(items, 0x14),
-		intro_length = pop_item_or_default(items, 0x30),
-		loop_length = pop_item_or_default(items, 0x31),
-		end_length = pop_item_or_default(items, 0x32),
-		fade_length = pop_item_or_default(items, 0x33),
-		muted_channels = pop_item_or_default(items, 0x34),
-		nb_loops = pop_item_or_default(items, 0x35),
-		mixing_level = pop_item_or_default(items, 0x36),
+		title = _pop_item_value_or_default(items, 0x1),
+		game = _pop_item_value_or_default(items, 0x2),
+		artist = _pop_item_value_or_default(items, 0x3),
+		dumper = _pop_item_value_or_default(items, 0x4),
+		date = _pop_item_value_or_default(items, 0x5),
+		emulator = _pop_item_value_or_default(items, 0x6),
+		comments = _pop_item_value_or_default(items, 0x7),
+		official_title = _pop_item_value_or_default(items, 0x10),
+		disc = _pop_item_value_or_default(items, 0x11),
+		track = _pop_item_value_or_default(items, 0x12),
+		publisher = _pop_item_value_or_default(items, 0x13),
+		copyright = _pop_item_value_or_default(items, 0x14),
+		intro_length = _pop_item_value_or_default(items, 0x30),
+		loop_length = _pop_item_value_or_default(items, 0x31),
+		end_length = _pop_item_value_or_default(items, 0x32),
+		fade_length = _pop_item_value_or_default(items, 0x33),
+		muted_channels = _pop_item_value_or_default(items, 0x34),
+		nb_loops = _pop_item_value_or_default(items, 0x35),
+		mixing_level = _pop_item_value_or_default(items, 0x36),
 		unknown_items = items
 	)
 
-def pop_item_or_default(items, itemId):
+def _pop_item_value_or_default(items, itemId):
 	item = next((item for item in items if item.header['id'] == itemId), None)
 	if item != None:
 		items.remove(item)
-
-	return item;
+		return item.interpreted_value
+	else:
+		return None;
 
 def parse(filename):
 	with open(filename, "rb") as f:

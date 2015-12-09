@@ -174,8 +174,10 @@ def _parse_base_tag(f):
 		fadeout = struct.unpack_from("i", fadeoutBytes)[0]
 		emulator = str(struct.unpack_from("b", emulatorBytes)[0])
 	else:
-		length = int(_bytes_to_string(lengthBytes))
-		fadeout = int(_bytes_to_string(fadeoutBytes))
+		lengthString = _bytes_to_string(lengthBytes)
+		fadeoutString = _bytes_to_string(fadeoutBytes)
+		length = int(lengthString) if lengthString != '' else 0
+		fadeout = int(fadeoutString) if fadeoutString != '' else 0
 		emulator = _bytes_to_string(emulatorBytes)
 	
 	

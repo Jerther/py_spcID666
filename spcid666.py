@@ -125,6 +125,9 @@ def _get_type(fieldBytes):
 		return 'binary'
 
 def _base_tag_is_binary(f):
+	# This method is highly based on SNESAmp
+	# http://www.alpha-ii.com/
+	
 	dateBytes = _read_file(f, [0x9E, 11])
 	dateType = _get_type(dateBytes)
 	songType = _get_type(_read_file(f, [0xA9, 3]))
@@ -139,11 +142,15 @@ def _base_tag_is_binary(f):
 			isBinary = True
 		else:
 			isBinary = _PREFER_BIN
+			if _DEBUG:
+				print "Unknown base tag type, prefered binary:", _PREFER_BIN
 	elif songType != 'binary' and fadeType != 'binary':							#If no time, or time is text
 		if dateType == 'text':
 			isBinary = False
 		elif dateType == None:
 			isBinary = _PREFER_BIN																			#Times could still be binary (ex. 56 bin = '8' txt)
+			if _DEBUG:
+				print "Unknown base tag type, prefered binary:", _PREFER_BIN
 		elif dateType == 'binary':																		#Date contains invalid characters
 			if all(b == 0 for b in dateBytes[4:7]):											#If bytes 4-7 are 0's, it's probably a ZSNES dump
 				isBinary = True
@@ -161,9 +168,9 @@ def _parse_base_tag(f):
 		print "Base tag is binary:", tagIsBinary
 	
 	if tagIsBinary:
-		offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 4], [0xA9, 3], [0xAC, 4], [0xB1, 32], [0xD1, 1], [0xD2, 1]]
+		offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 4], [0xA9, 3], [0xAC, 4], [0xB0, 32], [0xD0, 1], [0xD1, 1]]
 	else:
-		offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 11], [0xA9, 3], [0xAC, 5], [0xB0, 32], [0xD0, 1], [0xD1, 1]]
+		offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 11], [0xA9, 3], [0xAC, 5], [0xB1, 32], [0xD1, 1], [0xD2, 1]]
 
 	lengthBytes = _read_file(f, offsets[5])
 	fadeoutBytes = _read_file(f, offsets[6])
@@ -207,7 +214,10 @@ def _parse_interpreted_value(header, data):
 	if header['dataType'] == 0: #string
 		return _bytes_to_string(data)
 	elif header['dataType'] == 1: #integer
-		return struct.unpack_from("i", data)[0]
+		if header['hasData']:
+			return struct.unpack_from("i", data)[0]
+		else:
+			return data
 	elif header['dataType'] == 2: #data
 		return _interpret_data_for_item_id(header['id'], data)
 
@@ -237,6 +247,9 @@ def _parse_extended_tag(f):
 		else:
 			items.append(_xid6_item(header, None, _parse_interpreted_value(header, header['value'])))
 
+	return _create_extended_tag(items)
+	
+def _create_extended_tag(items):
 	return _extended_tag(
 		title = _pop_item_value_or_default(items, 0x1),
 		game = _pop_item_value_or_default(items, 0x2),
@@ -259,6 +272,7 @@ def _parse_extended_tag(f):
 		mixing_level = _pop_item_value_or_default(items, 0x36),
 		unknown_items = items
 	)
+
 
 def _pop_item_value_or_default(items, itemId):
 	item = next((item for item in items if item.header['id'] == itemId), None)

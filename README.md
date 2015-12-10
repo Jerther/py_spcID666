@@ -2,8 +2,6 @@
 
 Python script to get the ID666 tag, base and extended, from a SNES SPC file.
 
-(Not tested with binary ID666 tags. Most are text anyways.)
-
 Contributions welcome!
 
 ###Usage

@@ -221,10 +221,13 @@ def _parse_interpreted_value(header, data):
 	elif header['dataType'] == 2: #data
 		return _interpret_data_for_item_id(header['id'], data)
 
-def apply_corruption_workarounds(header, riffBuffer):
+def _apply_corruption_workarounds(header, riffBuffer):
 	if header['id'] == 0x13: #publisher name sometimes declares one byte too many
-		while (len(riffBuffer) - header['value']) % 4 > 0:
-			header['value'] = header['value'] - 1;
+		newLength = header['value']
+		while newLength > 0 and (len(riffBuffer) - newLength) % 4 > 0 and riffBuffer[newLength-1] != 0:
+			newLength = newLength - 1
+		if newLength > 0:
+			header['value'] = newLength
 
 def _parse_extended_tag(f):
 	f.seek(0x10200) #ID666 extended offset
@@ -241,7 +244,7 @@ def _parse_extended_tag(f):
 			print "Subchunk ID", "0x%X" % header['id'], ":", header['description']
 
 		if header['hasData']:
-			apply_corruption_workarounds(header, riffBuffer)
+			_apply_corruption_workarounds(header, riffBuffer)
 			subchunkData = _read_from_buffer(riffBuffer, header['value'])
 			items.append(_xid6_item(header, subchunkData, _parse_interpreted_value(header, subchunkData)))
 		else:

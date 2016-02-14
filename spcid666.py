@@ -60,9 +60,6 @@ class BaseTag:
 
 	def __init__(self):
 		self.is_binary = False
-		self.reset();
-
-	def reset(self):
 		self.title = ''
 		self.game = ''
 		self.dumper = ''
@@ -73,6 +70,7 @@ class BaseTag:
 		self.emulator = Emulator()
 		self.length_before_fadeout = 0
 		self.fadeout_length = 0
+
 
 ###############################
 class XID6_Item:
@@ -158,10 +156,6 @@ class Tag:
 		self.base = base
 		self.extended = extended
 
-	def reset(self):
-		self.base.reset()
-		self.extended.reset()
-
 ###############################
 class _TagReader:
 	def _read_from_buffer(self, bfr, size, offset = 0):
@@ -218,7 +212,7 @@ class _TagReader:
 		channelDisable = self._read_file(f, [0xd1, 1])
 		emulator = self._read_file(f, [0xd2, 1])
 		isBinary = True
-		
+
 		if songType == None and fadeType == None and dateType == None:	#If no times or date, use default
 			if channelDisable == 1 and emulator == 0:											#Was the file dumped with ZSNES?
 				isBinary = True
@@ -304,25 +298,29 @@ class _TagReader:
 	def parse_extended_tag(self, f):
 		f.seek(0x10200) #ID666 extended offset
 		riffId = f.read(4) # always "xid6"
-		riffChunkSize = struct.unpack("i", f.read(4))[0]
-		riffBuffer = bytearray(f.read(riffChunkSize))
+		
+		if riffId == '':
+			return None
+		else:
+			riffChunkSize = struct.unpack("i", f.read(4))[0]
+			riffBuffer = bytearray(f.read(riffChunkSize))
 
-		items = []
-		while riffBuffer:
-			subChunkHeader = self._read_from_buffer(riffBuffer, 4)
-			header = self._parse_header(subChunkHeader);
+			items = []
+			while riffBuffer:
+				subChunkHeader = self._read_from_buffer(riffBuffer, 4)
+				header = self._parse_header(subChunkHeader);
 
-			if _DEBUG:
-				print "Subchunk ID", "0x%X" % header.id, ":", header.description
+				if _DEBUG:
+					print "Subchunk ID", "0x%X" % header.id, ":", header.description
 
-			if header.hasData:
-				self._apply_corruption_workarounds(header, riffBuffer)
-				subchunkData = self._read_from_buffer(riffBuffer, header.value)
-				items.append(XID6_Item(header, subchunkData, self._parse_interpreted_value(header, subchunkData)))
-			else:
-				items.append(XID6_Item(header, None, self._parse_interpreted_value(header, header.value)))
+				if header.hasData:
+					self._apply_corruption_workarounds(header, riffBuffer)
+					subchunkData = self._read_from_buffer(riffBuffer, header.value)
+					items.append(XID6_Item(header, subchunkData, self._parse_interpreted_value(header, subchunkData)))
+				else:
+					items.append(XID6_Item(header, None, self._parse_interpreted_value(header, header.value)))
 
-		return self._create_extended_tag(items)
+			return self._create_extended_tag(items)
 		
 	def _create_extended_tag(self, items):
 		retval = ExtendedTag()
@@ -372,12 +370,16 @@ class _TagWriter:
 		
 		if not forceText and isinstance(data, int):
 			data = bytearray(struct.unpack("4B", struct.pack("I", data))[:size])
+		elif forceText and (isinstance(data, int) or isinstance(data, float)):
+			data = str(int(data))[:size]
+			data = data + ('\x00' * (size - len(data))) #padding
 		else:
 			data = str(data)[:size]
 			data = data + ('\x00' * (size - len(data))) #padding
 
 		self.f.seek(offset[0])
 		self.f.write(data)
+		
 
 	def write_base_tag(self):
 		tag = self.tag.base
@@ -385,7 +387,7 @@ class _TagWriter:
 		self._write_file(self.offsets[1], tag.game, False)
 		self._write_file(self.offsets[2], tag.dumper, False)
 		self._write_file(self.offsets[3], tag.comments, False)
-		self._write_file(self.offsets[4], tag.date if not tag.is_binary else int(tag.date), not tag.is_binary)
+		self._write_file(self.offsets[4], tag.date, not tag.is_binary)
 		self._write_file(self.offsets[7], tag.artist, False)
 		self._write_file(self.offsets[8], tag.muted_channels, False)
 		self._write_file(self.offsets[5], tag.length_before_fadeout, not tag.is_binary)
@@ -395,8 +397,10 @@ class _TagWriter:
 	def write_extended_tag(self):
 		xid6Size = self.tag.extended.get_total_size()
 		if xid6Size > 0:
-			self.f.seek(0x10204)
-			#write xid6 header with xid6Size to file
+			#pad with \x00 until we reach 0x10200
+			f.seek(0x10200) #ID666 extended offset
+			f.write('xid6')
+			#write xid6Size in 4 bytes
 			#write each xid6 item.
 
 ###############################
@@ -416,7 +420,7 @@ def save(tag, filename):
 
 		#xid6 not supported yet, will be stripped.
 		f.seek(0)
-		dataUntilXid6 = f.read(0x10204)
+		dataUntilXid6 = f.read(0x10200)
 		
 	with open(filename, 'w+b') as f:
 		f.write(dataUntilXid6)

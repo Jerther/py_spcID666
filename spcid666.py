@@ -8,6 +8,96 @@ _PREFER_BIN = False #Default to binary format, if type is indeterminable
 
 ###############################
 class ExtendedTag:
+	def __init__(self):
+		self.reset();
+
+	def get_items(self):
+		stringProperties = [
+			[0x01, self.title],
+			[0x02, self.game],
+			[0x03, self.artist],
+			[0x04, self.dumper],
+			[0x07, self.comments],
+			[0x10, self.officiel_title]
+		]
+		for stringProperty in stringProperties:
+			yield XID6_Item(header, data, stringProperty[1])
+
+	def get_total_size(self):
+		xid6Items = self.get_items()
+		#additionner tous les tags not None Integer (4 bytes chaque)
+		#additionner tous les strings. doivent finir avec 00 donc +1
+		#additionnner tous les data.
+		#toujours aligner sur 4 octets.
+		return 0
+
+	def reset(self):
+		self.title = None
+		self.game = None
+		self.artist = None
+		self.dumper = None
+		self.date = None
+		self.emulator = None
+		self.comments = None
+		self.official_title = None
+		self.disc = None
+		self.track = None
+		self.publisher = None
+		self.copyright = None
+		self.muted_channels = None
+		self.nb_loops = None
+		self.mixing_level = None
+		self.unknown_items = []
+		self.intro_length = None
+		self.loop_length = None
+		self.end_length = None
+		self.fade_length = None
+
+###############################
+class BaseTag:
+	binary_offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 4], [0xA9, 3], [0xAC, 4], [0xB0, 32], [0xD0, 1], [0xD1, 1]]
+	text_offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 11], [0xA9, 3], [0xAC, 5], [0xB1, 32], [0xD1, 1], [0xD2, 1]]
+
+	def __init__(self):
+		self.is_binary = False
+		self.reset();
+
+	def reset(self):
+		self.title = ''
+		self.game = ''
+		self.dumper = ''
+		self.comments = ''
+		self.date = None
+		self.artist = ''
+		self.muted_channels = 0
+		self.emulator = Emulator()
+		self.length_before_fadeout = 0
+		self.fadeout_length = 0
+
+###############################
+class XID6_Item:
+	def __init__(self, header = None, data = None, interpreted_value = None, id = None):
+		if header != None:
+			self.header = header
+			self.data = data
+			self.interpreted_value = interpreted_value
+		else: #this will be used for writing. unfinished and untested.
+			self.header = XID6_ItemHeader(id) 
+			if self.header.dataType == 0: #string
+				self.header.hasData = True
+				self.header.valueBytes = len(interpreted_value) + 1
+				self.data = bytearray(interpreted_value).append(0x00)
+			elif self.header.dataType == 1: #integer
+				self.header.hasData = False
+				self.header.valueBytes = len(interpreted_value) + 1
+			else: #data (not sure about the values here.)
+				self.header.hasData = True
+				self.header.valueBytes = len(data)
+				self.data = data
+
+
+###############################
+class XID6_ItemHeader:
 	ids = {
 		#[data, description]. type is: 0 string, 1 integer, 2 data.
 		0x01: [0, "Song Name"],
@@ -31,58 +121,24 @@ class ExtendedTag:
 		0x36: [2, "Mixing (Preamp) Level"]
 	}
 	
-	def __init__(self):
-		self.title = None
-		self.game = None
-		self.artist = None
-		self.dumper = None
-		self.date = None
-		self.emulator = None
-		self.comments = None
-		self.official_title = None
-		self.disc = None
-		self.track = None
-		self.publisher = None
-		self.copyright = None
-		self.intro_length = None
-		self.loop_length = None
-		self.end_length = None
-		self.fade_length = None
-		self.muted_channels = None
-		self.nb_loops = None
-		self.mixing_level = None
-		self.unknown_items = []
-
-###############################
-class BaseTag:
-	binary_offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 4], [0xA9, 3], [0xAC, 4], [0xB0, 32], [0xD0, 1], [0xD1, 1]]
-	text_offsets = [[0x2E, 32], [0x4E, 32], [0x6E, 16], [0x7E, 32], [0x9E, 11], [0xA9, 3], [0xAC, 5], [0xB1, 32], [0xD1, 1], [0xD2, 1]]
-
-	def __init__(self):
-		self.is_binary = False
-		self.title = ''
-		self.game = ''
-		self.dumper = ''
-		self.comments = ''
-		self.date = None
-		self.length_before_fadeout = 0
-		self.fadeout_length = 0
-		self.artist = ''
-		self.muted_channels = 0
-		self.emulator = None
-
-###############################
-class XID6_Item:
-	def __init__(self, header, data, interpreted_value):
-		self.header = header
-		self.data = data
-		self.interpreted_value = interpreted_value
+	def __init__(self, id, dataType = None, hasData = None, valueBytes = None, description = None, value = None):
+		self.id = id
+		self.value = value
+		self.valueBytes = valueBytes
+		self.hasData = hasData
+		
+		if dataType != None:
+			self.dataType = dataType
+			self.description = description
+		else:
+			self.dataType = XID6_ItemHeader.ids[id][0]
+			self.description = XID6_ItemHeader.ids[id][1]
 
 ###############################
 class Emulator:
 	names = ["unknown", "ZSNES", "Snes9x", "ZST2SPC", "ETC", "SNEShout", "ZSNESW"]
 	
-	def __init__(self, emulatorString):
+	def __init__(self, emulatorString = ''):
 		if emulatorString == '':
 			self.code = '0'
 			self.name = Emulator.names[0]
@@ -101,6 +157,10 @@ class Tag:
 	def __init__(self, base, extended):
 		self.base = base
 		self.extended = extended
+
+	def reset(self):
+		self.base.reset()
+		self.extended.reset()
 
 ###############################
 class _TagReader:
@@ -122,14 +182,14 @@ class _TagReader:
 			return data
 
 	def _parse_header(self, headerData):
-		return {
-			'id': headerData[0],
-			'description': ExtendedTag.ids[headerData[0]][1] if headerData[0] in ExtendedTag.ids.keys() else "Unknown",
-			'dataType': ExtendedTag.ids[headerData[0]][0] if headerData[0] in ExtendedTag.ids.keys() else None,
-			'hasData': headerData[1] != 0,
-			'value':  struct.unpack_from("h", headerData[2:])[0],
-			'valueBytes': headerData[2:]
-		}
+		return XID6_ItemHeader(
+			id = headerData[0],
+			description = XID6_ItemHeader.ids[headerData[0]][1] if headerData[0] in XID6_ItemHeader.ids.keys() else "Unknown",
+			dataType = XID6_ItemHeader.ids[headerData[0]][0] if headerData[0] in XID6_ItemHeader.ids.keys() else None,
+			hasData = headerData[1] != 0,
+			value =  struct.unpack_from("h", headerData[2:])[0],
+			valueBytes = headerData[2:]
+		)
 
 	def _read_file(self, f, offset_size):
 		f.seek(offset_size[0])
@@ -223,23 +283,23 @@ class _TagReader:
 		return retval
 
 	def _parse_interpreted_value(self, header, data):
-		if header['dataType'] == 0: #string
+		if header.dataType == 0: #string
 			return self._bytes_to_string(data)
-		elif header['dataType'] == 1: #integer
-			if header['hasData']:
+		elif header.dataType == 1: #integer
+			if header.hasData:
 				return struct.unpack_from("i", data)[0]
 			else:
 				return data
-		elif header['dataType'] == 2: #data
-			return self._interpret_data_for_item_id(header['id'], data)
+		elif header.dataType == 2: #data
+			return self._interpret_data_for_item_id(header.id, data)
 
 	def _apply_corruption_workarounds(self, header, riffBuffer):
-		if header['id'] == 0x13: #publisher name sometimes declares one byte too many
-			newLength = header['value']
+		if header.id == 0x13: #publisher name sometimes declares one byte too many
+			newLength = header.value
 			while newLength > 0 and (len(riffBuffer) - newLength) % 4 > 0 and riffBuffer[newLength-1] != 0:
 				newLength = newLength - 1
 			if newLength > 0:
-				header['value'] = newLength
+				header.value = newLength
 
 	def parse_extended_tag(self, f):
 		f.seek(0x10200) #ID666 extended offset
@@ -253,14 +313,14 @@ class _TagReader:
 			header = self._parse_header(subChunkHeader);
 
 			if _DEBUG:
-				print "Subchunk ID", "0x%X" % header['id'], ":", header['description']
+				print "Subchunk ID", "0x%X" % header.id, ":", header.description
 
-			if header['hasData']:
+			if header.hasData:
 				self._apply_corruption_workarounds(header, riffBuffer)
-				subchunkData = self._read_from_buffer(riffBuffer, header['value'])
+				subchunkData = self._read_from_buffer(riffBuffer, header.value)
 				items.append(XID6_Item(header, subchunkData, self._parse_interpreted_value(header, subchunkData)))
 			else:
-				items.append(XID6_Item(header, None, self._parse_interpreted_value(header, header['value'])))
+				items.append(XID6_Item(header, None, self._parse_interpreted_value(header, header.value)))
 
 		return self._create_extended_tag(items)
 		
@@ -290,7 +350,7 @@ class _TagReader:
 
 
 	def _pop_item_value_or_default(self, items, itemId):
-		item = next((item for item in items if item.header['id'] == itemId), None)
+		item = next((item for item in items if item.header.id == itemId), None)
 		if item != None:
 			items.remove(item)
 			return item.interpreted_value
@@ -299,45 +359,45 @@ class _TagReader:
 
 ###############################
 class _TagWriter:
-	def __init__(self, f):
+	def __init__(self, f, tag):
 		self.f = f
+		self.tag = tag
+		if tag.base.is_binary:
+			self.offsets = BaseTag.binary_offsets
+		else:
+			self.offsets = BaseTag.text_offsets
 
 	def _write_file(self, offset, data, forceText):
 		size = offset[1]
-		self.f.seek(offset[0])
-
+		
 		if not forceText and isinstance(data, int):
 			data = bytearray(struct.unpack("4B", struct.pack("I", data))[:size])
 		else:
-			data = str(data)
+			data = str(data)[:size]
 			data = data + ('\x00' * (size - len(data))) #padding
 
+		self.f.seek(offset[0])
 		self.f.write(data)
 
-	def write_base_tag(self, tag):
-		if tag.is_binary:
-			offsets = BaseTag.binary_offsets
-		else:
-			offsets = BaseTag.text_offsets
-		
-		self._write_file(offsets[0], tag.title, False)
-		self._write_file(offsets[1], tag.game, False)
-		self._write_file(offsets[2], tag.dumper, False)
-		self._write_file(offsets[3], tag.comments, False)
-		self._write_file(offsets[4], tag.date if not tag.is_binary else int(tag.date), not tag.is_binary)
-		self._write_file(offsets[7], tag.artist, False)
-		self._write_file(offsets[8], tag.muted_channels, False)
-		self._write_file(offsets[5], tag.length_before_fadeout, not tag.is_binary)
-		self._write_file(offsets[6], tag.fadeout_length, not tag.is_binary)
-		self._write_file(offsets[9], tag.emulator.code, not tag.is_binary)
+	def write_base_tag(self):
+		tag = self.tag.base
+		self._write_file(self.offsets[0], tag.title, False)
+		self._write_file(self.offsets[1], tag.game, False)
+		self._write_file(self.offsets[2], tag.dumper, False)
+		self._write_file(self.offsets[3], tag.comments, False)
+		self._write_file(self.offsets[4], tag.date if not tag.is_binary else int(tag.date), not tag.is_binary)
+		self._write_file(self.offsets[7], tag.artist, False)
+		self._write_file(self.offsets[8], tag.muted_channels, False)
+		self._write_file(self.offsets[5], tag.length_before_fadeout, not tag.is_binary)
+		self._write_file(self.offsets[6], tag.fadeout_length, not tag.is_binary)
+		self._write_file(self.offsets[9], tag.emulator.code, not tag.is_binary)
 
-	def write_extended_tag(self, tag):
-		#clear chunksize and after
-		#write each xid6 item (build them back mwahahaha!!! :'(
-		#je propose qu'on garde les items dans une collection a part, comme les unknown, mais les known...
-		#je propose que les proprietes deviennent des methodes qui vont aller lire les valid_items
-		#ca va m'eviter de les recreer... taponnage!
-		pass
+	def write_extended_tag(self):
+		xid6Size = self.tag.extended.get_total_size()
+		if xid6Size > 0:
+			self.f.seek(0x10204)
+			#write xid6 header with xid6Size to file
+			#write each xid6 item.
 
 ###############################
 def parse(filename):
@@ -349,10 +409,19 @@ def parse(filename):
 		)
 
 def save(tag, filename):
+	dataUntilXid6 = None
 	with open(filename, 'r+b') as f:
-		writer = _TagWriter(f)
-		writer.write_base_tag(tag.base)
-		writer.write_extended_tag(tag.extended)
+		writer = _TagWriter(f, tag)
+		writer.write_base_tag()
+
+		#xid6 not supported yet, will be stripped.
+		f.seek(0)
+		dataUntilXid6 = f.read(0x10204)
+		
+	with open(filename, 'w+b') as f:
+		f.write(dataUntilXid6)
+		writer = _TagWriter(f, tag)
+		writer.write_extended_tag()
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:

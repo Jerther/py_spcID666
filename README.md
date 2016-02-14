@@ -1,6 +1,6 @@
 # py_spcID666
 
-Python script to get the ID666 tag, base and extended, from a SNES SPC file.
+Python script to read and modify the ID666 tag, base and extended (xid6), from a SNES SPC file.
 
 Contributions welcome!
 
@@ -14,7 +14,9 @@ As a module:
 
 ```Python
 import spcid666
-spcid666.parse('snesmusic.spc')
+tag = spcid666.parse('snesmusic.spc')
+tag.base.game = 'Ramoutz'
+spcid666.save(tag) #warning: saving xid6 not supported yet! xid6 will be lost!
 ```
 
 

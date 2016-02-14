@@ -125,7 +125,7 @@ class XID6_ItemHeader:
 		self.valueBytes = valueBytes
 		self.hasData = hasData
 		
-		if dataType != None:
+		if dataType != None or id not in XID6_ItemHeader.ids:
 			self.dataType = dataType
 			self.description = description
 		else:

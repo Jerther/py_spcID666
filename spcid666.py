@@ -190,7 +190,8 @@ class _TagReader:
 		return bytearray(f.read(offset_size[1]));
 
 	def _bytes_to_string(self, bts):
-		return str(bts).rstrip(' \t\r\n\0')
+		retval = str(bts).rstrip(' \t\r\n\0')
+		return self._decode_string(retval)
 
 	def _get_type(self, fieldBytes):
 		if all(b == 0 for b in fieldBytes):
@@ -237,6 +238,13 @@ class _TagReader:
 
 		return isBinary
 
+	def _decode_string(self, string):
+		for encoding in ['ascii', 'UTF8', 'latin-1']:
+			try:
+				return string.decode(encoding)
+			except:
+				pass
+		return 'INVALID ENCODING'
 
 	def parse_base_tag(self, f):
 		tagIsBinary = self._base_tag_is_binary(f)

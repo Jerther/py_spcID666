@@ -382,8 +382,10 @@ class _TagWriter:
 			data = str(int(data))[:size]
 			data = data + ('\x00' * (size - len(data))) #padding
 		else:
-			data = str(data)[:size]
-			data = data + ('\x00' * (size - len(data))) #padding
+			if not isinstance(data, basestring):
+				data = str(data)
+			data = data[:size] + ('\x00' * (size - len(data))) #padding
+			data = bytearray(data, 'UTF8')
 
 		self.f.seek(offset[0])
 		self.f.write(data)

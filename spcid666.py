@@ -18,7 +18,7 @@ class ExtendedTag:
 			[0x03, self.artist],
 			[0x04, self.dumper],
 			[0x07, self.comments],
-			[0x10, self.officiel_title]
+			[0x10, self.official_title]
 		]
 		for stringProperty in stringProperties:
 			yield XID6_Item(header, data, stringProperty[1])

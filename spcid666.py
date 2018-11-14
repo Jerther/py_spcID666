@@ -11,25 +11,28 @@ class ExtendedTag:
 	def __init__(self):
 		self.reset();
 
-	def get_items(self):
-		stringProperties = [
-			[0x01, self.title],
-			[0x02, self.game],
-			[0x03, self.artist],
-			[0x04, self.dumper],
-			[0x07, self.comments],
-			[0x10, self.official_title]
-		]
-		for stringProperty in stringProperties:
-			yield XID6_Item(header, data, stringProperty[1])
-
-	def get_total_size(self):
-		xid6Items = self.get_items()
-		#additionner tous les tags not None Integer (4 bytes chaque)
-		#additionner tous les strings. doivent finir avec 00 donc +1
-		#additionnner tous les data.
-		#toujours aligner sur 4 octets.
-		return 0
+	def get_total_size(self): # Including header, excluding unknown chunks
+		size = 0
+		for key in XID6_ItemHeader.ids:
+			item = XID6_ItemHeader.ids[key]
+			if self.__dict__[item[2]] is None:
+				continue
+			if item[0] == 0: # String
+				size += 4 # Sub-chunk header
+				length = len(self.__dict__[item[2]]) + 1 # +1 for the 00 terminating byte
+				if length%4 > 0:
+					length = length - length%4 + 4 # Always pad to multiples of 4
+				size += length
+				continue
+			elif item[0] == 1: # Integer
+				size += 8
+				continue
+			elif item[0] == 2: # Data
+				size += 4
+				continue
+		if size > 0:
+			size += 8 # For the 'xid6' header and the chunk size
+		return size
 
 	def reset(self):
 		self.title = None
@@ -97,26 +100,26 @@ class XID6_Item:
 ###############################
 class XID6_ItemHeader:
 	ids = {
-		#[data, description]. type is: 0 string, 1 integer, 2 data.
-		0x01: [0, "Song Name"],
-		0x02: [0, "Game Name"],
-		0x03: [0, "Artist's Name"],
-		0x04: [0, "Dumper's Name"],
-		0x05: [1, "Date Song was Dumped (stored as YYYYMMDD)"],
-		0x06: [2, "Emulator Used"],
-		0x07: [0, "Comments"],
-		0x10: [0, "Official Soundtrack Title"],
-		0x11: [2, "OST Disc"],
-		0x12: [2, "OST Track (upper byte is the number 0-99], lower byte is an optional ASCII character)"],
-		0x13: [0, "Publisher's Name"],
-		0x14: [2, "Copyright Year"],
-		0x30: [1, "Introduction Length (lengths are stored in 1/64000th seconds)"],
-		0x31: [1, "Loop Length"],
-		0x32: [1, "End Length"],
-		0x33: [1, "Fade Length"],
-		0x34: [2, "Muted Voices (a bit is set for each voice that's muted)"],
-		0x35: [2, "Number of Times to Loop"],
-		0x36: [2, "Mixing (Preamp) Level"]
+		#[data, description, ExtendedTag member name]. type is: 0 string, 1 integer, 2 data.
+		0x01: [0, "Song Name", "title"],
+		0x02: [0, "Game Name", "game"],
+		0x03: [0, "Artist's Name", "artist"],
+		0x04: [0, "Dumper's Name", "dumper"],
+		0x05: [1, "Date Song was Dumped (stored as YYYYMMDD)", "date"],
+		0x06: [2, "Emulator Used", "emulator"],
+		0x07: [0, "Comments", "comments"],
+		0x10: [0, "Official Soundtrack Title", "official_title"],
+		0x11: [2, "OST Disc", "disc"],
+		0x12: [2, "OST Track (upper byte is the number 0-99], lower byte is an optional ASCII character)", "track"],
+		0x13: [0, "Publisher's Name", "publisher"],
+		0x14: [2, "Copyright Year", "copyright"],
+		0x30: [1, "Introduction Length (lengths are stored in 1/64000th seconds)", "intro_length"],
+		0x31: [1, "Loop Length", "loop_length"],
+		0x32: [1, "End Length", "end_length"],
+		0x33: [1, "Fade Length", "fade_length"],
+		0x34: [2, "Muted Voices (a bit is set for each voice that's muted)", "muted_channels"],
+		0x35: [2, "Number of Times to Loop", "nb_loops"],
+		0x36: [2, "Mixing (Preamp) Level", "mixing_level"]
 	}
 	
 	def __init__(self, id, dataType = None, hasData = None, valueBytes = None, description = None, value = None):

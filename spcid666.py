@@ -408,6 +408,8 @@ class _TagWriter:
 		self._write_file(self.offsets[9], tag.emulator.code, not tag.is_binary)
 
 	def write_extended_tag(self):
+		if self.tag.extended is None:
+			return
 		xid6Size = self.tag.extended.get_total_size()
 		if xid6Size > 0:
 			#pad with \x00 until we reach 0x10200

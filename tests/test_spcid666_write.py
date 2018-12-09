@@ -16,15 +16,15 @@ class TestSpcID666Write(BaseTest):
         self.maxDiff = None
         tmp_file = self._get_spc_copy('res/test_sounds_empty_tags.spc')
         tag = spcid666.parse(tmp_file)
-        tag.base.fadeout_length = 10,
-        tag.base.title = 'Les Miserables',
-        tag.base.artist = 'Victor Hugo',
-        tag.base.comments = 'Really long',
-        tag.base.game = 'Bookz',
-        tag.base.length_before_fadeout = 11,
-        tag.base.emulator.code = 1,
-        tag.base.date = '2018-12-08',
-        tag.base.dumper = 'Jerther',
+        tag.base.fadeout_length = 10
+        tag.base.title = 'Les Miserables'
+        tag.base.artist = 'Victor Hugo'
+        tag.base.comments = 'Really long'
+        tag.base.game = 'Bookz'
+        tag.base.length_before_fadeout = 11
+        tag.base.emulator.code = 1
+        tag.base.date = '2018-12-08'
+        tag.base.dumper = 'Jerther'
         tag.base.muted_channels = 1
         spcid666.save(tag, tmp_file)
 

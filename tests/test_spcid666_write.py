@@ -13,7 +13,6 @@ class TestSpcID666Write(BaseTest):
             os.remove(f)
 
     def test_write_base(self):
-        self.maxDiff = None
         tmp_file = self._get_spc_copy('res/test_sounds_empty_tags.spc')
         tag = spcid666.parse(tmp_file)
         tag.base.fadeout_length = 10
@@ -22,7 +21,7 @@ class TestSpcID666Write(BaseTest):
         tag.base.comments = 'Really long'
         tag.base.game = 'Bookz'
         tag.base.length_before_fadeout = 11
-        tag.base.emulator.code = 1
+        tag.base.emulator.code = '1'
         tag.base.date = '2018-12-08'
         tag.base.dumper = 'Jerther'
         tag.base.muted_channels = 1
@@ -49,6 +48,16 @@ class TestSpcID666Write(BaseTest):
         dst = '%s_tmp' % file_name
         shutil.copyfile(file_name, dst)
         return dst
+
+    def test_read_write_base_tag_other_emulator(self):
+        tmp_file = self._get_spc_copy('res/test_sounds_empty_tags.spc')
+        tag = spcid666.parse(tmp_file)
+        tag.base.emulator.code = '9'
+        spcid666.save(tag, tmp_file)
+        actual_tag = spcid666.parse(tmp_file)
+        self.assertEqual('other', actual_tag.base.emulator.name)
+        self.assertEqual('9', actual_tag.base.emulator.code)
+        self.assertTrue(actual_tag.base.emulator.is_other)
 
     def test_write_extended_overwrite(self):
         pass

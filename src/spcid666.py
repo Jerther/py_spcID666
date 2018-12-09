@@ -222,14 +222,14 @@ class _TagReader:
 				isBinary = True
 			else:
 				isBinary = _PREFER_BIN
-				if _DEBUG:
+				if _DEBUG:  # pragma: nocover
 					print "Unknown base tag type, prefered binary:", _PREFER_BIN
 		elif songType != 'binary' and fadeType != 'binary':							#If no time, or time is text
 			if dateType == 'text':
 				isBinary = False
 			elif dateType == None:
 				isBinary = _PREFER_BIN																			#Times could still be binary (ex. 56 bin = '8' txt)
-				if _DEBUG:
+				if _DEBUG:  # pragma: nocover
 					print "Unknown base tag type, prefered binary:", _PREFER_BIN
 			elif dateType == 'binary':																		#Date contains invalid characters
 				if all(b == 0 for b in dateBytes[4:7]):											#If bytes 4-7 are 0's, it's probably a ZSNES dump
@@ -251,7 +251,7 @@ class _TagReader:
 
 	def parse_base_tag(self, f):
 		tagIsBinary = self._base_tag_is_binary(f)
-		if _DEBUG:
+		if _DEBUG:  # pragma: nocover
 			print "Base tag is binary:", tagIsBinary
 		
 		if tagIsBinary:
@@ -321,7 +321,7 @@ class _TagReader:
 				subChunkHeader = self._read_from_buffer(riffBuffer, 4)
 				header = self._parse_header(subChunkHeader);
 
-				if _DEBUG:
+				if _DEBUG:  # pragma: nocover
 					print "Subchunk ID", "0x%X" % header.id, ":", header.description
 
 				if header.hasData:

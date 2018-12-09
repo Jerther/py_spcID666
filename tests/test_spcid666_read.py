@@ -46,8 +46,6 @@ class TestSpcID666Read(BaseTest):
         self._assert_base_tag_equal(expected_base, tag.base)
         self._assert_extended_tag_equal(expected_ex, tag.extended)
 
-
-
     def test_read_extended_tag_2(self):
         tag = spcid666.parse('res/test_808_extended_tag_2.spc')
         self.assertEqual(228, tag.extended.get_total_size())
@@ -127,19 +125,37 @@ class TestSpcID666Read(BaseTest):
         self._assert_base_tag_equal(expected_base, tag.base)
 
     def test_read_base_tag_binary(self):
-        tag = spcid666.parse('res/test_usability_base_tag.spc')
+        tag = spcid666.parse('res/test_usability_base_tag_binary.spc')
         self.assertIsNone(tag.extended)
         expected_base = {
             'fadeout_length': 5670,
             'title': u'Usability test',
             'artist': u'Shiru',
             'comments': u'This is a great comment!',
-            'is_binary': False,
+            'is_binary': True,
             'game': u'snesgss',
             'length_before_fadeout': 83,
             'emulator': 'unknown',
             'date': u'',
             'dumper': u'juef',
             'muted_channels': 0
+        }
+        self._assert_base_tag_equal(expected_base, tag.base)
+
+    def test_read_base_tag_zsnes(self):
+        tag = spcid666.parse('res/elix-smashit-pal_zsnes.spc')
+        self.assertIsNone(tag.extended)
+        expected_base = {
+            'fadeout_length': 0,
+            'title': u'',
+            'artist': u'',
+            'comments': u'',
+            'is_binary': True,
+            'game': u'ELIX 2014 - SMASH IT',
+            'length_before_fadeout': 0,
+            'emulator': 'ZSNES',
+            'date': u'\t\x0c\xe2\x07',  # TODO: Is this right? Should be December 9th 2018
+            'dumper': u'',
+            'muted_channels': 255
         }
         self._assert_base_tag_equal(expected_base, tag.base)

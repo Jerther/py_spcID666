@@ -1,6 +1,6 @@
 # py_spcID666
 
-Python script to read and modify the ID666 tag, base and extended (xid6), from a SNES SPC file.
+Python 2.7 script to read and modify the ID666 tag, base and extended (xid6), from a SNES SPC file.
 
 Contributions welcome!
 
@@ -19,6 +19,9 @@ tag.base.game = 'Ramoutz'
 spcid666.save(tag, 'new_file.spc') #warning: saving xid6 not supported yet! xid6 will be lost!
 ```
 
+###Development with PyCharm
+Set the ```src``` directory as source root. Then run Unittest or pytest in the ```tests``` directory.
+For coverage report, you can use ```pytest-cov``` and use these arguments: ```--cov=../src --cov-report html```
 
 ###More info
 

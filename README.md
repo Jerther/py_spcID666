@@ -4,7 +4,7 @@ Python 2.7 script to read and modify the ID666 tag, base and extended (xid6), fr
 
 Contributions welcome!
 
-###Usage
+### Usage
 From command line:
 ```sh
 $ python spcid666.py snesmusic.spc
@@ -19,11 +19,11 @@ tag.base.game = 'Ramoutz'
 spcid666.save(tag, 'new_file.spc') #warning: saving xid6 not supported yet! xid6 will be lost!
 ```
 
-###Development with PyCharm
+### Development with PyCharm
 Set the ```src``` directory as source root. Then run Unittest or pytest in the ```tests``` directory.
 For coverage report, you can use ```pytest-cov``` and use these arguments: ```--cov=../src --cov-report html```
 
-###More info
+### More info
 
 http://wiki.superfamicom.org/snes/show/SPC+and+RSN+File+Format#extended-id666
 

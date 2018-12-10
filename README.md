@@ -25,7 +25,7 @@ For coverage report, you can use ```pytest-cov``` and use these arguments: ```--
 
 ### More info
 
-http://wiki.superfamicom.org/snes/show/SPC+and+RSN+File+Format#extended-id666
+https://wiki.superfamicom.org/spc-and-rsn-file-format
 
 http://www.johnloomis.org/cpe102/asgn/asgn1/riff.html
 

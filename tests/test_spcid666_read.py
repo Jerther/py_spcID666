@@ -154,7 +154,7 @@ class TestSpcID666Read(BaseTest):
             'game': u'ELIX 2014 - SMASH IT',
             'length_before_fadeout': 0,
             'emulator': 'ZSNES',
-            'date': u'\t\x0c\xe2\x07',  # TODO: Is this right? Should be December 9th 2018
+            'date': u'12/09/2018',
             'dumper': u'',
             'muted_channels': 255
         }

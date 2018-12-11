@@ -265,20 +265,22 @@ class _TagReader:
 		retval.game = self._bytes_to_string(self._read_file(f, offsets[1]))
 		retval.dumper = self._bytes_to_string(self._read_file(f, offsets[2]))
 		retval.comments = self._bytes_to_string(self._read_file(f, offsets[3]))
-		retval.date = self._bytes_to_string(self._read_file(f, offsets[4]))
 		retval.artist = self._bytes_to_string(self._read_file(f, offsets[7]))
 		retval.muted_channels = self._read_file(f, offsets[8])[0] #always binary
-		
+
+		spc_date = self._read_file(f, offsets[4])
 		lengthBytes = self._read_file(f, offsets[5])
 		fadeoutBytes = self._read_file(f, offsets[6])
 		emulatorBytes = self._read_file(f, offsets[9])
 		
 		if tagIsBinary:
 			lengthBytes.append(0x00)
+			retval.date = self._unpack_binary_date(spc_date)
 			retval.length_before_fadeout = struct.unpack_from("i", lengthBytes)[0]
 			retval.fadeout_length = struct.unpack_from("i", fadeoutBytes)[0]
 			retval.emulator = Emulator(str(struct.unpack_from("b", emulatorBytes)[0]))
 		else:
+			retval.date = self._bytes_to_string(spc_date)
 			lengthString = self._bytes_to_string(lengthBytes)
 			fadeoutString = self._bytes_to_string(fadeoutBytes)
 			retval.length_before_fadeout = int(lengthString) if lengthString != '' else 0
@@ -286,6 +288,15 @@ class _TagReader:
 			retval.emulator = Emulator(self._bytes_to_string(emulatorBytes))
 
 		return retval
+
+	def _unpack_binary_date(self, data):
+		day = int(data[0])
+		month = int(data[1])
+		year = struct.unpack_from("h", data[2:4])[0]
+		if year and month and day:
+			return '%02d/%02d/%04d' % (month, day, year)
+		else:
+			return ''
 
 	def _parse_interpreted_value(self, header, data):
 		if header.dataType == 0: #string
@@ -400,7 +411,8 @@ class _TagWriter:
 		self._write_file(self.offsets[1], tag.game, False)
 		self._write_file(self.offsets[2], tag.dumper, False)
 		self._write_file(self.offsets[3], tag.comments, False)
-		self._write_file(self.offsets[4], tag.date, not tag.is_binary)
+		if not tag.is_binary:  # Writing binary date is unsupported as date string format varies a lot.
+			self._write_file(self.offsets[4], tag.date, not tag.is_binary)
 		self._write_file(self.offsets[7], tag.artist, False)
 		self._write_file(self.offsets[8], tag.muted_channels, False)
 		self._write_file(self.offsets[5], tag.length_before_fadeout, not tag.is_binary)
@@ -446,4 +458,5 @@ if __name__ == '__main__':
 	if len(sys.argv) != 2:
 		print "Usage: spcid666.py spcfile.spc"
 	else:
-		print parse(sys.argv[1])
+		tag = parse(sys.argv[1])
+		print tag.base.__dict__
